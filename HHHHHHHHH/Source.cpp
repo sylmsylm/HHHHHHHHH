@@ -43,5 +43,6 @@ int main() {
         int* p = mp[0].GetValue(i);
         assert((i >= y && i < x && p && *p == i) || (i >= x && !p) || (i < y && !p));
     }
+    std::cout << "...";
     return 0;
 }
