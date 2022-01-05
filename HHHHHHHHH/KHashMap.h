@@ -39,6 +39,57 @@ struct pair {
 };
 
 template<class _Kty, class _Ty, class _Hasher, class _Keyeq>
+class KHashMap;
+
+template<class _Kty, class _Ty, class _Hasher, class _Keyeq>
+class Iter {
+private:
+    using hashmap       = KHashMap<_Kty, _Ty, _Hasher, _Keyeq>;
+    using value_type    = pair<_Kty, _Ty>;
+    using node          = node<value_type>;
+
+    node* cur;
+    hashmap* hm;
+
+public:
+    Iter(node* _cur, hashmap* _hm) : cur(_cur), hm(_hm) {}
+    Iter() : cur(0), hm(0) {}
+    Iter(const Iter& _Iter) : cur(_Iter.cur), hm(_Iter.hm) {}
+
+    value_type& operator*() const { return cur->value; }
+    value_type* operator->() const { return &(cur->value); }
+    Iter& operator++()
+    {
+        node* old = cur;
+        cur = cur->next;
+        if (!cur)
+        {
+            size_t uhash = hm->hash(old->value.first) & (hm->m_nBucketSize - 1ull);
+            while (!cur && ++uhash < hm->m_nBucketSize)
+            {
+                cur = hm->m_ppList[uhash];
+            }
+        }
+        return *this;
+    }
+    Iter operator++(int)
+    {
+        Iter ret = *this;
+        ++(*this);
+        return ret;
+    }
+
+    bool operator!=(const Iter& cO) const
+    {
+        return cur != cO.cur;
+    }
+    bool operator==(const Iter& cO) const
+    {
+        return cur == cO.cur;
+    }
+};
+
+template<class _Kty, class _Ty, class _Hasher, class _Keyeq>
 class KHashMap {
 public:
     using hasher            = _Hasher;
@@ -46,6 +97,7 @@ public:
     using mapped_type       = _Ty;
     using key_equal         = _Keyeq;
     using value_type        = pair<_Kty, _Ty>;
+    using iterator          = Iter<_Kty, _Ty, _Hasher, _Keyeq>;
 
     KHashMap() {
         m_nBucketSize = m_nValueCount = 0;
@@ -98,6 +150,7 @@ public:
     }
 
     BOOL Modify(const key_type& Key, const mapped_type& Value) {
+        if (!m_ppList) return FALSE;
         size_t x = hash(Key) & (m_nBucketSize - 1ull);
         for (node<value_type>* p = m_ppList[x]; p; p = p->next) {
             if (equals(p->value.first, Key)) {
@@ -108,6 +161,7 @@ public:
     }
 
     BOOL Delete(const key_type& Key) {
+        if (!m_ppList) return FALSE;
         size_t x = hash(Key) & (m_nBucketSize - 1ull);
         node<value_type>* pre = m_ppList[x];
         for (node<value_type>* p = m_ppList[x]; p; pre = p, p = p->next) {
@@ -120,6 +174,7 @@ public:
     }
 
     mapped_type* GetValue(const key_type& Key) {
+        if (!m_ppList) return FALSE;
         size_t x = hash(Key) & (m_nBucketSize - 1ull);
         for (node<value_type>* p = m_ppList[x]; p; p = p->next) {
             if (equals(p->value.first, Key)) {
@@ -146,6 +201,24 @@ public:
             free(m_ppList);
             m_ppList = NULL;
         }
+    }
+
+    friend iterator;
+    iterator begin() {
+        if (!m_nValueCount) {
+            return end();
+        }
+        for (int i = 0; i < m_nBucketSize; ++i) {
+            if (m_ppList[i])
+            {
+                return iterator(m_ppList[i], this);
+            }
+        }
+        return end();
+    }
+
+    iterator end() {
+        return iterator(NULL, this);
     }
 
 private:
@@ -178,7 +251,7 @@ private:
             }
         }
         for (int i = 0; i < old; ++i) {
-            node<value_type>* f = m_ppList[i];
+            node<value_type>* f = (node<value_type>*) m_ppList[i];
             node<value_type>* tmp = NULL;
             node<value_type>* pre = m_ppList[i];
             while (f) {

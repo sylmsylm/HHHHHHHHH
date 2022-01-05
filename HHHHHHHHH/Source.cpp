@@ -44,5 +44,38 @@ int main() {
         assert((i >= y && i < x && p && *p == i) || (i >= x && !p) || (i < y && !p));
     }
     std::cout << "...";
+
+    int c = 0;
+    for (KHashMap<int, int, std::hash<int>, std::equal_to<int> >::iterator it = mp[0].begin(); it != mp[0].end(); ++it)
+    {
+        assert(it->first == it->second);
+        c++;
+    }
+    assert(c == x - y);
+
+    c = 0;
+    for (KHashMap<int, int, std::hash<int>, std::equal_to<int> >::iterator it = mp[1].begin(); it != mp[1].end(); it++)
+    {
+        assert(((it->first) ^ z) == it->second);
+        c++;
+    }
+    assert(c == x);
+    mp[1] = KHashMap<int, int, std::hash<int>, std::equal_to<int> >();
+    assert(!(mp[1].begin() != mp[1].end()));
+
+    for (int i = 0; i < x; ++i)
+    {
+        assert(mp[1].Insert(i, (i - z) * y) == TRUE);
+    }
+    c = 0;
+    for (KHashMap<int, int, std::hash<int>, std::equal_to<int> >::iterator it = mp[1].begin(); it != mp[1].end(); ++it)
+    {
+        assert(((it->first) - z) * y == it->second);
+        c++;
+    }
+    assert(c == x);
+
+    Iter<int, int, std::hash<int>, std::equal_to<int>> it = mp[1].begin();
+
     return 0;
 }
